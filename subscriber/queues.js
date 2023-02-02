@@ -2,6 +2,8 @@
 
 const amqp = require('amqplib')
 const queue = process.env.QUEUE || 'hello'
+let counter = 1;
+const rejector = process.env.REJECTOR || false;
 
 function intensiveOperation() {
     let i = 1e3
@@ -19,10 +21,20 @@ async function subscriber() {
 
         intensiveOperation()
 
-        console.log(`Received message from "${queue}" queue`)
-        console.log(content)
+        console.log(`Received message from "${queue}" queue = `, content)
 
-        channel.ack(message)
+        if (counter === 1 && rejector){
+            setTimeout(()=>{
+                console.log(`Rejected: ${content.id}`)
+                channel.nack(message, false)
+            }, 3500)
+
+        }else {
+            channel.ack(message)
+            console.log(`Processed: ${content.id}`)
+        }
+
+        counter++
     })
 }
 
